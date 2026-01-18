@@ -24,6 +24,13 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: 'brew-tapper/go.mod'
+          
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ github.event.inputs.tag }}
+          git push origin ${{ github.event.inputs.tag }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6

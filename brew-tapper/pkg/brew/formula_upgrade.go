@@ -3,12 +3,14 @@ package brew
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/google/go-github/github"
 	"github.com/sirupsen/logrus"
 	"github.com/softleader/homebrew-tap/tapper/pkg/gh"
 	"golang.org/x/oauth2"
-	"regexp"
-	"time"
 )
 
 const (
@@ -21,8 +23,13 @@ var (
 	msg                = "version upgrade by brew-tapper bot"
 	versionRegexp      = regexp.MustCompile(`(version\s)(.+)`)
 	sha256Regexp       = regexp.MustCompile(`(sha256\s)(.+)`)
-	darwinSha256Regexp = regexp.MustCompile(`(OS\.mac[\s|\S]+sha256\s)[\S|\s]+elsif`)
-	linuxSha256Regexp  = regexp.MustCompile(`(OS\.linux[\s|\S]+sha256\s)[\S|\s]+end`)
+	darwinSha256Regexp = regexp.MustCompile(`(OS\.mac[\s|\S]+?sha256\s)[\S|\s]+?(?:elsif|end\n\n\s\sdef)`)
+	linuxSha256Regexp  = regexp.MustCompile(`(OS\.linux[\s|\S]+?sha256\s)[\S|\s]+?end`)
+
+	darwinArm64Regexp = regexp.MustCompile(`(Hardware::CPU\.arm\?[\s|\S]+?sha256\s)[\S|\s]+?else`)
+	darwinAmd64Regexp = regexp.MustCompile(`(else[\s|\S]+?sha256\s)[\S|\s]+?end`)
+	linuxArm64Regexp  = regexp.MustCompile(`(Hardware::CPU\.arm\?[\s|\S]+?sha256\s)[\S|\s]+?else`)
+	linuxAmd64Regexp  = regexp.MustCompile(`(else[\s|\S]+?sha256\s)[\S|\s]+?end`)
 )
 
 func (f *Formula) Upgrade(token string, repo *gh.Repo) error {
@@ -67,12 +74,35 @@ func newTokenClient(ctx context.Context, token string) *github.Client {
 func format(origin string, f *Formula) (out string) {
 	logrus.Debugf("formatting formula:\n%s", origin)
 	out = versionRegexp.ReplaceAllString(origin, fmt.Sprintf("$1%q", f.Version))
+
+	// Replace Darwin section
 	out = darwinSha256Regexp.ReplaceAllStringFunc(out, func(s string) string {
+		if strings.Contains(s, "Hardware::CPU.arm?") {
+			s = darwinArm64Regexp.ReplaceAllStringFunc(s, func(arm string) string {
+				return sha256Regexp.ReplaceAllString(arm, fmt.Sprintf("$1%q", f.DarwinArm64Sha256))
+			})
+			s = darwinAmd64Regexp.ReplaceAllStringFunc(s, func(amd64 string) string {
+				return sha256Regexp.ReplaceAllString(amd64, fmt.Sprintf("$1%q", f.DarwinSha256))
+			})
+			return s
+		}
 		return sha256Regexp.ReplaceAllString(s, fmt.Sprintf("$1%q", f.DarwinSha256))
 	})
+
+	// Replace Linux section
 	out = linuxSha256Regexp.ReplaceAllStringFunc(out, func(s string) string {
+		if strings.Contains(s, "Hardware::CPU.arm?") {
+			s = linuxArm64Regexp.ReplaceAllStringFunc(s, func(arm string) string {
+				return sha256Regexp.ReplaceAllString(arm, fmt.Sprintf("$1%q", f.LinuxArm64Sha256))
+			})
+			s = linuxAmd64Regexp.ReplaceAllStringFunc(s, func(amd64 string) string {
+				return sha256Regexp.ReplaceAllString(amd64, fmt.Sprintf("$1%q", f.LinuxSha256))
+			})
+			return s
+		}
 		return sha256Regexp.ReplaceAllString(s, fmt.Sprintf("$1%q", f.LinuxSha256))
 	})
+
 	logrus.Debugf("version replaced:\n%s", out)
 	return
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func TestFormula_Guess(t *testing.T) {
-	os, name, version, err := guess("slctl-v1.2.3-darwin.tgz")
+	os, _, name, version, err := guess("slctl-v1.2.3-darwin.tgz")
 	if err != nil {
 		t.Error(err)
 		t.SkipNow()

@@ -53,28 +53,28 @@ func TestFormat_MultiArch(t *testing.T) {
 	lua := `class Slctl < Formula
   desc "Slctl is a command line interface for running commands against SoftLeader Services"
   homepage "https://github.com/softleader/slctl"
-  version "2.1.0"
+  version "4.0.0"
   
   if OS.mac?
     if Hardware::CPU.arm?
       url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-darwin-arm64-#{version}.tgz"
-      sha256 "-----"
+      sha256 ""
     else
       url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-darwin-amd64-#{version}.tgz"
-      sha256 "-----"
+      sha256 ""
     end
   elsif OS.linux?
-    if Hardware::CPU.arm?
-      url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-linux-arm64-#{version}.tgz"
-      sha256 "-----"
-    else
-      url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-linux-amd64-#{version}.tgz"
-      sha256 "-----"
-    end
+    url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-linux-amd64-#{version}.tgz"
+    sha256 ""
   end
 
   def install
     bin.install "slctl"
+  end
+
+  def caveats; <<~EOS
+    To begin working with slctl, run the 'slctl init' command.
+  EOS
   end
 end`
 	formula := Formula{
@@ -82,7 +82,6 @@ end`
 		DarwinSha256:      "mac-amd64",
 		DarwinArm64Sha256: "mac-arm64",
 		LinuxSha256:       "linux-amd64",
-		LinuxArm64Sha256:  "linux-arm64",
 	}
 	out := format(lua, &formula)
 	if !strings.Contains(out, fmt.Sprintf("version %q", formula.Version)) {
@@ -96,9 +95,6 @@ end`
 	}
 	if !strings.Contains(out, fmt.Sprintf("sha256 %q", formula.LinuxSha256)) {
 		t.Errorf("linux amd64 sha256 should be %q", formula.LinuxSha256)
-	}
-	if !strings.Contains(out, fmt.Sprintf("sha256 %q", formula.LinuxArm64Sha256)) {
-		t.Errorf("linux arm64 sha256 should be %q", formula.LinuxArm64Sha256)
 	}
 	fmt.Println(out)
 }

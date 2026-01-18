@@ -12,13 +12,8 @@ class Slctl < Formula
       sha256 ""
     end
   elsif OS.linux?
-    if Hardware::CPU.arm?
-      url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-linux-arm64-#{version}.tgz"
-      sha256 ""
-    else
-      url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-linux-amd64-#{version}.tgz"
-      sha256 ""
-    end
+    url "https://github.com/softleader/slctl/releases/download/#{version}/slctl-linux-amd64-#{version}.tgz"
+    sha256 ""
   end
 
   def install

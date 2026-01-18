@@ -1,9 +1,12 @@
 name: Release Tapper
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag version to release (e.g., 1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -20,7 +23,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.6'
+          go-version-file: 'brew-tapper/go.mod'
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6

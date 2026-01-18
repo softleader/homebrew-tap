@@ -4,14 +4,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/Masterminds/semver"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Masterminds/semver"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -74,7 +75,7 @@ func (f *Formula) Guess(path string) error {
 		if file.IsDir() || !isSupportedArchive(file.Name()) {
 			continue
 		}
-		guessOs, guessName, guessVersion, err := guess(filepath.Base(file.Name()))
+		guessOs, guessArch, guessName, guessVersion, err := guess(filepath.Base(file.Name()))
 		if err != nil {
 			logrus.Debugln(err)
 			continue
@@ -85,14 +86,34 @@ func (f *Formula) Guess(path string) error {
 		if len(f.Version) == 0 {
 			f.Version = guessVersion
 		}
-		if len(f.LinuxSha256) == 0 && guessOs == "linux" {
-			if f.LinuxSha256, err = hash(filepath.Join(path, file.Name())); err != nil {
-				return err
+		if guessOs == "linux" {
+			if guessArch == "arm64" {
+				if len(f.LinuxArm64Sha256) == 0 {
+					if f.LinuxArm64Sha256, err = hash(filepath.Join(path, file.Name())); err != nil {
+						return err
+					}
+				}
+			} else { // amd64 or unspecified
+				if len(f.LinuxSha256) == 0 {
+					if f.LinuxSha256, err = hash(filepath.Join(path, file.Name())); err != nil {
+						return err
+					}
+				}
 			}
 		}
-		if len(f.DarwinSha256) == 0 && guessOs == "darwin" {
-			if f.DarwinSha256, err = hash(filepath.Join(path, file.Name())); err != nil {
-				return err
+		if guessOs == "darwin" {
+			if guessArch == "arm64" {
+				if len(f.DarwinArm64Sha256) == 0 {
+					if f.DarwinArm64Sha256, err = hash(filepath.Join(path, file.Name())); err != nil {
+						return err
+					}
+				}
+			} else { // amd64 or unspecified
+				if len(f.DarwinSha256) == 0 {
+					if f.DarwinSha256, err = hash(filepath.Join(path, file.Name())); err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
@@ -121,7 +142,7 @@ func hash(file string) (checksum string, err error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-func guess(file string) (os, name, version string, err error) {
+func guess(file string) (os, arch, name, version string, err error) {
 	var fileName = truncateExtension(file)
 	chunks := strings.Split(fileName, "-")
 	if len(chunks) == 1 {
@@ -136,6 +157,7 @@ func guess(file string) (os, name, version string, err error) {
 			continue
 		}
 		if containsIgnoreCase(goarch64bit, chunk) {
+			arch = chunk
 			continue
 		}
 		if containsIgnoreCase(goos, chunk) {

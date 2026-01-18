@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: brew-tapper
+
+builds:
+  - id: tapper
+    main: ./cmd/tapper
+    binary: tapper
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    format: tar.gz
+
+checksum:
+  name_template: 'checksums.txt'
+
+release:
+  github:
+    owner: softleader
+    name: homebrew-tap
+  draft: false
+  prerelease: auto
+  mode: replace
